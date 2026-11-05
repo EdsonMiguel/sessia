@@ -13,6 +13,7 @@ use App\Models\Procedure;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Catalog\SuggestProcedurePrice;
+use App\Modules\Customer\SaveCustomerAddress;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
@@ -97,6 +98,83 @@ it('deactivates and reactivates a customer without deleting their addresses or p
     expect($customer->fresh()->is_active)->toBeTrue();
 });
 
+it('creates a customer and primary address together in the current tenant', function () {
+    otherBusinessRecords();
+    Livewire::test(CustomerForm::class)
+        ->assertSee('Endereço principal')
+        ->set('name', 'Cliente com endereço')->set('phone', '11999991234')
+        ->set(collect(addressData(['state' => 'sp']))->except('is_primary')->all())
+        ->call('save')->assertHasNoErrors();
+
+    $customer = Customer::sole();
+    $address = $customer->addresses()->sole();
+    expect($address->tenant_id)->toBe($this->tenant->id)
+        ->and($address->is_primary)->toBeTrue()
+        ->and($address->state)->toBe('SP')
+        ->and($address->complement)->toBeNull();
+});
+
+it('rejects incomplete and invalid addresses before creating the customer', function () {
+    $form = Livewire::test(CustomerForm::class)
+        ->set('name', 'Cliente de teste')->set('phone', '11999991234')
+        ->set('street', 'Rua incompleta')->call('save')
+        ->assertHasErrors(['postal_code', 'number', 'neighborhood', 'city', 'state']);
+    $form->set(collect(addressData(['postal_code' => 'invalid', 'state' => 'XX']))->except('is_primary')->all())
+        ->call('save')->assertHasErrors(['postal_code', 'state']);
+    expect(Customer::count())->toBe(0)->and(CustomerAddress::count())->toBe(0);
+});
+
+it('edits the primary address without duplicating it or changing secondary addresses', function () {
+    $customer = Customer::factory()->create();
+    $primary = $customer->addresses()->create(addressData());
+    $secondary = $customer->addresses()->create(addressData(['street' => 'Outra rua', 'is_primary' => false]));
+    Livewire::test(CustomerForm::class, ['customerId' => $customer->id])
+        ->assertSet('street', $primary->street)->assertSet('addressId', $primary->id)
+        ->set('street', 'Rua atualizada')->call('save')->assertHasNoErrors();
+    expect($primary->fresh()->street)->toBe('Rua atualizada')
+        ->and($secondary->fresh()->street)->toBe('Outra rua')
+        ->and($secondary->fresh()->is_primary)->toBeFalse()
+        ->and($customer->addresses()->count())->toBe(2);
+});
+
+it('adds a primary address while editing a customer without an address', function () {
+    $customer = Customer::factory()->create();
+    Livewire::test(CustomerForm::class, ['customerId' => $customer->id])
+        ->set(collect(addressData())->except('is_primary')->all())
+        ->call('save')->assertHasNoErrors();
+    expect($customer->addresses()->sole()->is_primary)->toBeTrue();
+});
+
+it('does not erase an existing address or save customer changes when its fields are cleared', function () {
+    $customer = Customer::factory()->create();
+    $address = $customer->addresses()->create(addressData());
+    Livewire::test(CustomerForm::class, ['customerId' => $customer->id])
+        ->set('name', 'Alteração inválida')
+        ->set(array_fill_keys(['postal_code', 'street', 'number', 'complement', 'neighborhood', 'city', 'state', 'reference'], ''))
+        ->call('save')->assertHasErrors(['postal_code', 'street']);
+    expect($customer->fresh()->name)->toBe($customer->name)
+        ->and($address->fresh()->street)->toBe('Rua de Teste');
+});
+
+it('rolls back customer creation when saving its address fails', function () {
+    $this->mock(SaveCustomerAddress::class)
+        ->shouldReceive('handle')->once()->andThrow(new RuntimeException('Address persistence failed'));
+    expect(fn () => Livewire::test(CustomerForm::class)
+        ->set('name', 'Cliente de teste')->set('phone', '11999991234')
+        ->set(collect(addressData())->except('is_primary')->all())->call('save'))
+        ->toThrow(RuntimeException::class, 'Address persistence failed');
+    expect(Customer::count())->toBe(0)->and(CustomerAddress::count())->toBe(0);
+});
+
+it('locks the customer form address against cross tenant payload changes', function () {
+    $other = otherBusinessRecords();
+    $customer = Customer::factory()->create();
+    expect(fn () => Livewire::test(CustomerForm::class, ['customerId' => $customer->id])
+        ->set('addressId', $other['address']->id))
+        ->toThrow(CannotUpdateLockedPropertyException::class);
+    expect(DB::table('customer_addresses')->where('id', $other['address']->id)->value('street'))->toBe('Rua de Teste');
+});
+
 it('searches only inside the current business and filters inactive records', function () {
     $other = otherBusinessRecords();
     Customer::factory()->create(['name' => 'Cliente visível', 'phone' => '11999991234']);
@@ -121,6 +199,24 @@ it('creates multiple addresses and changes the primary address transactionally',
         ->set('street', 'Rua atualizada')->set('is_primary', true)->call('save')->assertHasNoErrors();
     expect($first->fresh()->street)->toBe('Rua atualizada')->and($first->fresh()->is_primary)->toBeTrue();
     expect($customer->addresses()->where('is_primary', true)->count())->toBe(1);
+});
+
+it('offers a separate Uber destination for each customer address without leaking other tenant data', function () {
+    $other = otherBusinessRecords();
+    $customer = Customer::factory()->create();
+    $first = $customer->addresses()->create(addressData(['street' => 'Rua São João & Filhos #2']));
+    $second = $customer->addresses()->create(addressData(['street' => 'Alameda Secundária', 'is_primary' => false]));
+    $response = $this->get('/clientes/'.$customer->id)->assertOk()->assertSee('Ir de Uber')->assertSee('Copiar endereço');
+    $document = new DOMDocument;
+    @$document->loadHTML($response->getContent());
+    $links = (new DOMXPath($document))->query('//a[starts-with(@href, "https://m.uber.com/looking?")]');
+    $destinations = [];
+    foreach ($links as $link) {
+        parse_str(parse_url($link->getAttribute('href'), PHP_URL_QUERY), $parameters);
+        $destinations[] = $parameters['dropoff']['formatted_address'];
+    }
+    expect($destinations)->toHaveCount(2)->toContain($first->formatted, $second->formatted)
+        ->not->toContain($other['address']->formatted);
 });
 
 it('validates address fields and does not change the primary address on failure', function () {

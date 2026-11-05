@@ -11,13 +11,28 @@
 
 @layer components {
     .field-label { @apply mb-2 block text-sm font-medium text-stone-700; }
-    .field-input { @apply block min-h-12 w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-base text-stone-900 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700/20; }
+    .field-input { @apply block min-h-12 min-w-0 w-full max-w-full rounded-xl border border-stone-300 bg-white px-3 py-3 text-base text-stone-900 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700/20 sm:px-4; }
     .field-error { @apply mt-2 text-sm text-red-700; }
-    .primary-button { @apply inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl bg-teal-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-wait disabled:opacity-60; }
-    .nav-link { @apply rounded-xl px-4 py-3 text-sm font-medium text-stone-600 hover:bg-stone-50; }
+    .primary-button { @apply inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-teal-800 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-wait disabled:opacity-60 sm:w-auto sm:px-6; }
+    .nav-link { @apply flex min-h-11 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-stone-600 hover:bg-stone-50; }
     .nav-active { @apply bg-teal-50 text-teal-900; }
     .eyebrow { @apply text-xs font-semibold uppercase tracking-widest text-teal-700; }
-    .page-title { @apply mt-3 text-3xl font-semibold tracking-tight sm:text-4xl; }
+    .page-title { @apply mt-3 text-2xl font-semibold tracking-tight sm:text-4xl; }
+}
+
+@layer base {
+    body { overflow-wrap: anywhere; }
+    fieldset, .grid > *, .flex > * { min-width: 0; }
+    input[type='date'], input[type='datetime-local'], input[type='time'] { min-inline-size: 0; }
+}
+
+.navigation-panel { display: none; }
+.navigation-panel[data-open='true'] { display: block; max-height: calc(100dvh - 6rem); overflow-y: auto; padding-bottom: env(safe-area-inset-bottom); }
+.app-content { padding-bottom: max(2rem, env(safe-area-inset-bottom)); }
+
+@media (min-width: 64rem) {
+    .navigation-panel, .navigation-panel[data-open='true'] { display: block; max-height: none; overflow: visible; }
 }
 
 button:focus-visible, a:focus-visible { outline: 2px solid #0f766e; outline-offset: 4px; }
+[x-cloak] { display: none !important; }

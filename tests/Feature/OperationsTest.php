@@ -85,6 +85,56 @@ it('renders the remaining modules with real records', function () {
     }
 });
 
+it('prepares Pix only for unpaid installment balances using the current business receiver', function () {
+    $this->tenant->update(['pix_key' => 'pix@example.test', 'pix_receiver' => 'Negócio de Teste', 'pix_city' => 'São Paulo']);
+    $contract = operationContract(['type' => 'single']);
+    $charge = app(IssueReceivable::class)->handle($contract->id, ['2026-12-10', '2026-12-20']);
+    [$first, $second] = $charge->installments;
+    app(RecordPayment::class)->handle([$first->id => '50.00', $second->id => '10.01'], 'pix', '2026-12-01T02:00', (string) Str::uuid());
+
+    Livewire::test(ReceivableDetail::class, ['receivableId' => $charge->id])
+        ->assertSee('Copiar Pix')->assertSee('Enviar pelo WhatsApp')
+        ->assertViewHas('pixData', fn ($data) => $data['key'] === 'pix@example.test'
+            && count($data['installments']) === 1
+            && $data['installments'][0]['id'] === (string) $second->id
+            && $data['installments'][0]['amount'] === '39.99'
+            && str_contains($data['description'], 'Drenagem de teste'));
+    expect(Payment::count())->toBe(1);
+});
+
+it('does not offer a Pix for a settled receivable and restores the balance after reversal', function () {
+    $this->tenant->update(['pix_key' => 'pix@example.test', 'pix_receiver' => 'Teste', 'pix_city' => 'São Paulo']);
+    $charge = app(IssueReceivable::class)->handle(operationContract(['type' => 'single'])->id, ['2026-12-10']);
+    $payment = app(RecordPayment::class)->handle([$charge->installments()->sole()->id => '100.00'], 'pix', '2026-12-01T02:00', (string) Str::uuid());
+    Livewire::test(ReceivableDetail::class, ['receivableId' => $charge->id])
+        ->assertSee('não possui saldo pendente')->assertDontSee('Copiar Pix');
+    app(RecordPayment::class)->reverse($payment->id, 'Correção de teste');
+    Livewire::test(ReceivableDetail::class, ['receivableId' => $charge->id])
+        ->assertViewHas('pixData', fn ($data) => $data['installments'][0]['amount'] === '100.00');
+});
+
+it('requests receiver configuration before offering Pix sharing', function () {
+    $charge = app(IssueReceivable::class)->handle(operationContract(['type' => 'single'])->id, ['2026-12-10']);
+    Livewire::test(ReceivableDetail::class, ['receivableId' => $charge->id])
+        ->assertSee('Cadastre a chave Pix')->assertDontSee('Copiar Pix');
+});
+
+it('keeps the Uber destination from the appointment snapshot after the customer address changes', function () {
+    $appointment = operationAppointment();
+    $originalAddress = $appointment->address_snapshot['formatted'];
+    $this->address->update(['street' => 'Rua Nova & Outra', 'number' => '99']);
+
+    $response = $this->get('/agenda/'.$appointment->id)->assertOk()->assertSee('Ir de Uber');
+    $document = new DOMDocument;
+    @$document->loadHTML($response->getContent());
+    $link = (new DOMXPath($document))->query('//a[starts-with(@href, "https://m.uber.com/looking?")]')->item(0);
+    expect($link)->not->toBeNull();
+    parse_str(parse_url($link->getAttribute('href'), PHP_URL_QUERY), $parameters);
+    expect($parameters['dropoff']['formatted_address'])->toBe($originalAddress)
+        ->and($parameters['pickup'])->toBe('my_location');
+    expect($response->getContent())->not->toContain(rawurlencode($this->address->fresh()->formatted));
+});
+
 it('preserves negotiated price and procedure snapshots after catalog and habitual changes', function () {
     $this->customer->procedurePrices()->create(['procedure_id' => $this->procedure->id, 'price' => '85.00']);
     $contract = operationContract(['items' => [['procedure_id' => $this->procedure->id, 'quantity' => 1, 'unit_price' => '']]]);
@@ -110,6 +160,17 @@ it('detects conflicts including preparation and travel but permits adjacent occu
     expect(fn () => operationAppointment(at: '2026-12-01T11:00'))->toThrow(ValidationException::class);
     operationAppointment(at: '2026-12-01T11:30');
     expect(Appointment::count())->toBe(2);
+});
+
+it('closes the block dialog only after successfully saving the period', function () {
+    $form = Livewire::test(Agenda::class)
+        ->set('blockStart', '2026-12-01T10:00')->set('blockEnd', '2026-12-01T09:00')
+        ->set('blockReason', 'Compromisso de teste')->call('block')
+        ->assertHasErrors('blockEnd')->assertNotDispatched('period-blocked')
+        ->assertSet('blockReason', 'Compromisso de teste');
+    $form->set('blockEnd', '2026-12-01T11:00')->call('block')
+        ->assertHasNoErrors()->assertDispatched('period-blocked')
+        ->assertSet('blockStart', '')->assertSet('blockEnd', '')->assertSet('blockReason', '');
 });
 
 it('rejects conflicting blocks and preserves removed blocks', function () {

@@ -19,6 +19,18 @@ ou integrações bancárias fictícias.
   prioridade ao personalizado, inclusive zero, e depois ao padrão.
 - Detalhe da cliente com contratos, saldos, últimas competências, agenda e financeiro.
 
+### Catálogo público
+
+- Slug único e telefone/WhatsApp nas configurações do negócio; campos inicialmente vazios.
+- Indicador `show_in_catalog` nos procedimentos, desativado por padrão.
+- Landing page `/catalogo/{slug}` sem autenticação, com nome, descrição, duração e
+  preço padrão dos procedimentos ativos que foram explicitamente publicados.
+- Seleção de serviço e contato `wa.me` para o negócio; o envio depende do visitante.
+- Queries públicas restritas ao tenant localizado pelo slug, inclusive ao validar
+  o serviço selecionado. Dados de clientes, preços personalizados e Pix são privados.
+- Migration `2026_11_05_000001_add_public_catalog_fields.php` adiciona campos e índices.
+- Slug vazio desativa a página. Mudanças de slug não mantêm redirecionamento do link antigo.
+
 ### Agenda e execução
 
 - Visualizações diária, semanal e mensal, por data, com compromissos e bloqueios.
@@ -39,6 +51,15 @@ houver valor a receber, registre a contratação avulsa e vincule suas sessões 
 
 ### Contratações
 
+- Cadastro reutilizável de pacotes em `/pacotes`, com nome, descrição, itens, quantidades,
+  total decimal, edição, desativação e indicador de catálogo. Migration
+  `2026_11_05_000002_create_procedure_packages.php`, com chaves compostas por tenant.
+- A contratação permite carregar um pacote e ajustar os itens e valores, ou começar
+  um pacote personalizado. Isso não salva nem altera um modelo automaticamente.
+- O catálogo público inclui pacotes publicados e ativos, com WhatsApp próprio para
+  a seleção. Publicar um pacote expõe os nomes e quantidades de seus procedimentos;
+  todos devem estar ativos, mas não precisam de publicação individual. Desativar um
+  procedimento suspende a publicação e o carregamento do pacote até sua revisão.
 - Avulso, pacote e plano mensal, com cliente, quantidades e preços negociados.
 - Itens guardam nome, duração e preço negociado, independentes de alterações futuras.
 - O total acordado pode diferir da soma dos preços por sessão.
@@ -71,15 +92,20 @@ houver valor a receber, registre a contratação avulsa e vincule suas sessões 
 - Situações pendente, parcial, paga e atrasada, com identificação de parcial vencida.
 - Estorno integral de pagamento com motivo e ator; valores e parcelas originais
   não são reescritos, e o histórico das alocações permanece.
-- Cada negócio configura sua chave Pix, recebedor e cidade. A cobrança apresenta
-  a chave e permite copiá-la; somente a confirmação manual registra recebimento.
+- Cada negócio configura sua chave Pix, recebedor e cidade. `pix-utils` 2.8.2 gera
+  Pix Copia e Cola para o saldo da parcela escolhida, com referência e descrição
+  abreviada para os limites EMV. A mensagem `wa.me` contém somente o código Pix
+  Copia e Cola, sem textos extras. Somente a confirmação manual registra recebimento.
 - Dashboard real: compromissos do dia/semana, próximos atendimentos, recebido no mês,
   saldo a receber e parcelas vencidas.
 
-Pix Copia e Cola no padrão EMV e QR Code estático não foram implementados. O pedido
-condiciona esses recursos a uma implementação tecnicamente válida e testada; esta
-entrega utiliza a apresentação/cópia da chave e baixa manual. Não há integração
-bancária, webhook, conciliação ou assinatura comercial do SaaS.
+Pix Copia e Cola estático foi implementado com testes de estrutura EMV, CRC,
+centavos, pagamentos parciais e parcelas quitadas. A chave cadastrada é reutilizada;
+não há criação de chave bancária. Telefone Pix deve conter DDI, como +55.
+A geração ocorre no navegador, sem envio de dados a um serviço de geração externo.
+O link do WhatsApp prepara a mensagem, e a profissional decide enviá-la.
+A imagem de QR Code e a homologação em aplicativos bancários não estão disponíveis.
+Não há integração bancária, webhook, conciliação ou assinatura comercial do SaaS.
 
 ## Decisões técnicas e segurança
 
@@ -220,7 +246,7 @@ será necessário agregar e paginar no banco mantendo as mesmas regras e isolame
 - Políticas comerciais gerais continuam abertas conforme AGENTS.md. As escolhas
   pontuais confirmadas na tela não definem uma política geral de negócio.
 
-Recuperação de senha, verificação de e-mail, QR/Pix EMV, integrações bancárias,
+Recuperação de senha, verificação de e-mail, imagem de QR Code, integrações bancárias,
 assinaturas comerciais do SaaS, portal de clientes e equipe avançada não foram
 adicionados. Os últimos itens permanecem fora do escopo solicitado para este MVP,
-exceto QR/EMV, que foi condicionado à validação técnica e não está disponível.
+exceto a imagem de QR Code, que continua pendente; Pix EMV Copia e Cola está disponível.

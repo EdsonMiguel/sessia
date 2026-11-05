@@ -13,6 +13,8 @@ use App\Models\Payment;
 use App\Models\PlanPeriod;
 use App\Models\PlanPeriodItem;
 use App\Models\Procedure;
+use App\Models\ProcedurePackage;
+use App\Models\ProcedurePackageItem;
 use App\Models\Receivable;
 use App\Models\ServiceContract;
 use App\Modules\Platform\CurrentTenant;
@@ -40,7 +42,7 @@ class AppServiceProvider extends ServiceProvider
         foreach ([Customer::class, Procedure::class, CustomerAddress::class, CustomerProcedurePrice::class,
             ServiceContract::class, ContractItem::class, PlanPeriod::class,
             PlanPeriodItem::class, Appointment::class, Receivable::class,
-            Installment::class, Payment::class] as $model) {
+            Installment::class, Payment::class, ProcedurePackage::class, ProcedurePackageItem::class] as $model) {
             Gate::policy($model, TenantRecordPolicy::class);
         }
         Livewire::addPersistentMiddleware([

@@ -5,6 +5,7 @@ namespace App\Livewire\Billing;
 use App\Models\Payment;
 use App\Models\Receivable;
 use App\Modules\Billing\RecordPayment;
+use App\Modules\Catalog\DecimalAmount;
 use App\Modules\Platform\CurrentTenant;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -65,10 +66,26 @@ class ReceivableDetail extends Component
 
     public function render()
     {
-        $receivable = $this->receivable()->load('customer', 'contract', 'installments.allocations.payment');
+        $receivable = $this->receivable()->load('customer', 'contract.items', 'installments.allocations.payment');
         $payments = Payment::with('allocations.installment')->whereHas('allocations.installment', fn ($q) => $q->where('receivable_id', $receivable->id))->orderByDesc('id')->get();
         $tenant = app(CurrentTenant::class)->get();
+        $pixData = [
+            'key' => $tenant->pix_key,
+            'receiver' => $tenant->pix_receiver,
+            'city' => $tenant->pix_city,
+            'phone' => $receivable->customer->phone,
+            'description' => $receivable->description.' · '.$receivable->contract->items->pluck('procedure_name')->implode(', '),
+            'installments' => $receivable->installments->filter(fn ($i) => $i->remainingCents() > 0)->map(fn ($i) => [
+                'id' => (string) $i->id,
+                'number' => $i->number,
+                'due' => $i->due_on->format('d/m/Y'),
+                'amount' => DecimalAmount::fromCents($i->remainingCents()),
+                'formattedAmount' => DecimalAmount::format(DecimalAmount::fromCents($i->remainingCents())),
+                'txid' => 'S'.$receivable->id.'P'.$i->id,
+                'reference' => 'Cobranca '.$receivable->id.' Parcela '.$i->number,
+            ])->values()->all(),
+        ];
 
-        return view('livewire.billing.receivable-detail', compact('receivable', 'payments', 'tenant'));
+        return view('livewire.billing.receivable-detail', compact('receivable', 'payments', 'tenant', 'pixData'));
     }
 }

@@ -1,7 +1,7 @@
 <div>
     <div class="flex flex-wrap items-end justify-between gap-4">
         <div><p class="eyebrow">Cada cliente, um cuidado</p><h1 class="page-title">Clientes</h1></div>
-        <a href="{{ route('customers.create') }}" class="primary-button">+ Nova cliente</a>
+        <a href="{{ route('customers.create') }}" class="primary-button"><x-icon name="plus" /> <span>Nova cliente</span></a>
     </div>
     <x-flash />
     <div class="my-7 grid gap-4 sm:grid-cols-[1fr_12rem]">

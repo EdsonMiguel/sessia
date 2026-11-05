@@ -34,6 +34,7 @@ class Agenda extends Component
         app(ScheduleAppointment::class)->block($this->blockStart, $this->blockEnd, $this->blockReason);
         $this->reset('blockStart', 'blockEnd', 'blockReason');
         session()->flash('status', 'Período bloqueado.');
+        $this->dispatch('period-blocked');
     }
 
     public function unblock(int $id): void

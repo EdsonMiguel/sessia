@@ -1,13 +1,22 @@
 <div>
     <a href="{{ route('contracts.index') }}" class="text-sm text-teal-800">← Contratações</a><h1 class="page-title">Nova contratação</h1><p class="mt-3 text-stone-500">Registre os procedimentos, as sessões e o valor acordado com a cliente.</p>
     <x-form.errors />
-    <form wire:submit="save" class="mt-7 max-w-3xl space-y-6 rounded-2xl border border-stone-200 bg-white p-6 sm:p-8">
+    <form wire:submit="save" class="mt-7 max-w-3xl space-y-6 rounded-2xl border border-stone-200 bg-white p-4 sm:p-8">
         <div><label for="customer_id" class="field-label">Cliente</label><select id="customer_id" wire:model.live="customer_id" class="field-input" required><option value="">Selecione</option>@foreach($customers as $customer)<option value="{{ $customer->id }}">{{ $customer->name }}</option>@endforeach</select></div>
         <div><label for="type" class="field-label">Modalidade</label><select id="type" wire:model.live="type" class="field-input">@foreach(\App\Models\ServiceContract::TYPES as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></div>
+        @if($type === 'package')
+            <section class="space-y-4 rounded-xl border border-teal-200 bg-teal-50 p-4">
+                <h2 class="flex items-center gap-2 font-semibold text-teal-900"><x-icon name="package" /> Comece com um pacote</h2>
+                <div><label for="package_id" class="field-label">Pacote cadastrado (opcional)</label><select id="package_id" wire:model="package_id" class="field-input"><option value="">Selecione um pacote</option>@foreach($packages as $package)<option value="{{ $package->id }}">{{ $package->name }} · {{ \App\Modules\Catalog\DecimalAmount::format($package->total) }}</option>@endforeach</select></div>
+                <div class="flex flex-wrap items-center gap-3"><button type="button" wire:click="applyPackage" wire:loading.attr="disabled" class="primary-button"><x-icon name="copy" /> Usar pacote selecionado</button><button type="button" wire:click="startCustomPackage" wire:loading.attr="disabled" class="min-h-11 text-sm font-semibold text-teal-900">Personalizar novo pacote</button></div>
+                <p class="text-sm text-teal-900">Usar um pacote preenche e substitui os itens e o total abaixo. Ajuste como desejar antes de salvar. Personalizar um novo limpa esses campos. As alterações valem apenas para esta contratação.</p>
+                @if($packages->isEmpty())<a href="{{ route('packages.create') }}" class="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-teal-800"><x-icon name="plus" /> Cadastrar um modelo reutilizável</a>@endif
+            </section>
+        @endif
         <div class="grid gap-5 sm:grid-cols-2"><x-form.input name="starts_on" label="Data inicial" type="date" wire:model="starts_on" required />@if($type === 'plan')<x-form.input name="ends_on" label="Data final (opcional)" type="date" wire:model="ends_on" />@endif</div>
         <section class="space-y-4"><h2 class="font-semibold">{{ $type === 'plan' ? 'Sessões por competência mensal' : 'Sessões contratadas' }}</h2>
             @foreach($items as $index => $item)<div wire:key="contract-item-{{ $index }}" class="space-y-4 rounded-xl bg-stone-50 p-4"><div><label for="procedure-{{ $index }}" class="field-label">Procedimento</label><select id="procedure-{{ $index }}" wire:model.live="items.{{ $index }}.procedure_id" required class="field-input"><option value="">Selecione</option>@foreach($procedures as $procedure)<option value="{{ $procedure->id }}">{{ $procedure->name }}</option>@endforeach</select></div><div class="grid gap-4 sm:grid-cols-2"><x-form.input name="quantity-{{ $index }}" label="Quantidade de sessões" type="number" min="1" max="65535" wire:model="items.{{ $index }}.quantity" required /><x-form.input name="price-{{ $index }}" label="Preço negociado por sessão (R$)" inputmode="decimal" wire:model="items.{{ $index }}.unit_price" placeholder="Sugestão do catálogo" /></div><button type="button" wire:click="removeItem({{ $index }})" class="min-h-11 text-sm text-stone-600">Remover item</button></div>@endforeach
-            <button type="button" wire:click="addItem" class="min-h-11 text-sm font-semibold text-teal-800">+ Adicionar procedimento</button><p class="text-xs text-stone-500">Ao selecionar a cliente e o procedimento, o preço habitual é sugerido. Você pode negociá-lo. Alterar a cliente atualiza as sugestões.</p>
+            <button type="button" wire:click="addItem" class="min-h-11 text-sm font-semibold text-teal-800"><x-icon name="plus" /> <span>Adicionar procedimento</span></button><p class="text-xs text-stone-500">Ao selecionar a cliente e o procedimento, o preço habitual é sugerido. Você pode negociá-lo. Alterar a cliente atualiza as sugestões.</p>
         </section>
         <x-form.input name="total" :label="$type === 'plan' ? 'Mensalidade total negociada (R$)' : 'Valor total negociado (R$)'" wire:model="total" inputmode="decimal" required placeholder="0,00" />
         <p class="text-sm text-stone-500">O total acordado pode ser diferente da soma dos itens. Agendar, realizar e receber são etapas independentes.</p>
@@ -16,6 +25,6 @@
             <p class="text-sm text-stone-500">A quantidade mensal é fixa. Uma quinta ocorrência do dia semanal não concede outra sessão. Quando o dia de vencimento não existir, será usado o último dia do mês. Competências parciais exigirão confirmação dos termos.</p>
         @endif
         <x-form.textarea name="notes" label="Observações do acordo (opcional)" wire:model="notes" maxlength="5000" />
-        <button class="primary-button" wire:loading.attr="disabled">Registrar contratação</button>
+        <button class="primary-button" wire:loading.attr="disabled"><x-icon name="document" /> <span>Registrar contratação</span></button>
     </form>
 </div>

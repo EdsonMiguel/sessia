@@ -23,6 +23,8 @@ class ProcedureForm extends Component
 
     public string $default_price = '';
 
+    public bool $show_in_catalog = false;
+
     public function mount(?int $procedureId = null): void
     {
         $this->procedureId = $procedureId;
@@ -33,6 +35,7 @@ class ProcedureForm extends Component
             $this->description = $procedure->description ?? '';
             $this->duration_minutes = (string) $procedure->duration_minutes;
             $this->default_price = str_replace('.', ',', $procedure->default_price);
+            $this->show_in_catalog = $procedure->show_in_catalog;
         } else {
             Gate::authorize('create', Procedure::class);
         }
@@ -49,6 +52,7 @@ class ProcedureForm extends Component
             'description' => ['nullable', 'string', 'max:5000'],
             'duration_minutes' => ['required', 'integer', 'min:1', 'max:65535'],
             'default_price' => DecimalAmount::rules(),
+            'show_in_catalog' => ['boolean'],
         ]);
         $data['default_price'] = DecimalAmount::normalize($data['default_price']);
         $data['description'] = $data['description'] ?: null;

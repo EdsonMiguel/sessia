@@ -1,10 +1,13 @@
 <?php
 
+use App\Http\Controllers\PublicCatalogController;
 use App\Http\Middleware\ResolveTenant;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Billing\FinanceList;
 use App\Livewire\Billing\ReceivableDetail;
+use App\Livewire\Catalog\PackageForm;
+use App\Livewire\Catalog\PackageList;
 use App\Livewire\Catalog\ProcedureForm;
 use App\Livewire\Catalog\ProcedureList;
 use App\Livewire\Contract\ContractDetail;
@@ -24,6 +27,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route(Auth::check() ? 'dashboard' : 'login'));
+
+Route::get('/catalogo/{slug}', [PublicCatalogController::class, 'show'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('catalog.show');
+Route::get('/catalogo/{slug}/contato', [PublicCatalogController::class, 'contact'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->middleware('throttle:60,1')->name('catalog.contact');
 
 Route::middleware('guest')->group(function () {
     Route::get('/entrar', Login::class)->name('login');
@@ -57,6 +63,9 @@ Route::middleware(['auth', ResolveTenant::class])->group(function () {
     Route::get('/clientes/{customerId}/enderecos/novo', AddressForm::class)->whereNumber('customerId')->name('customers.addresses.create');
     Route::get('/clientes/{customerId}/enderecos/{addressId}/editar', AddressForm::class)->whereNumber(['customerId', 'addressId'])->name('customers.addresses.edit');
     Route::get('/procedimentos', ProcedureList::class)->name('procedures.index');
+    Route::get('/pacotes', PackageList::class)->name('packages.index');
+    Route::get('/pacotes/novo', PackageForm::class)->name('packages.create');
+    Route::get('/pacotes/{packageId}/editar', PackageForm::class)->whereNumber('packageId')->name('packages.edit');
     Route::get('/procedimentos/novo', ProcedureForm::class)->name('procedures.create');
     Route::get('/procedimentos/{procedureId}/editar', ProcedureForm::class)->whereNumber('procedureId')->name('procedures.edit');
 });

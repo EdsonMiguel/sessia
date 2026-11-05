@@ -187,8 +187,9 @@ it('rechecks membership on Livewire actions after access is revoked', function (
     $owner = businessOwner('Negócio protegido');
     $tenant = $owner->tenants()->sole();
     $component = Livewire::actingAs($owner)->test(BusinessSettings::class);
+    $component->set('name', 'Alteração indevida');
     $owner->tenants()->detach($tenant);
-    $component->set('name', 'Alteração indevida')->call('save')->assertForbidden();
+    $component->call('save')->assertForbidden();
     expect($tenant->fresh()->name)->toBe('Negócio protegido');
 });
 

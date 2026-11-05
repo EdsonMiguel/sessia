@@ -1,0 +1,20 @@
+services:
+  mysql:
+    image: mysql:8.4
+    ports:
+      - "127.0.0.1:${DB_PORT:-3306}:3306"
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-sessia}
+      MYSQL_USER: ${DB_USERNAME:-sessia}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no ambiente local}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD no ambiente local}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  mysql_data:

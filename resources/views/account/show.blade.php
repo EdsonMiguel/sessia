@@ -20,4 +20,7 @@
             <button class="primary-button">Alterar senha</button>
         </form>
     </section>
+    @can('update', app(\App\Modules\Platform\CurrentTenant::class)->get())
+        <livewire:platform.clear-data />
+    @endcan
 </x-layouts.app>

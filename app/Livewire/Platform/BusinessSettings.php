@@ -29,6 +29,7 @@ class BusinessSettings extends Component
     {
         $tenant = $current->get();
         Gate::authorize('update', $tenant);
+
         $this->name = $tenant->name;
         $this->timezone = $tenant->timezone;
         $this->slug = $tenant->slug ?? '';
@@ -68,6 +69,11 @@ class BusinessSettings extends Component
     {
         $tenant = app(CurrentTenant::class)->get();
 
-        return view('livewire.platform.business-settings', ['catalogUrl' => $tenant->slug ? route('catalog.show', $tenant->slug) : null]);
+        Gate::authorize('update', $tenant);
+
+        return view('livewire.platform.business-settings', [
+            'catalogUrl' => $tenant->slug ? route('catalog.show', $tenant->slug) : null,
+            'businessName' => $tenant->name,
+        ]);
     }
 }

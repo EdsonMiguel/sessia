@@ -13,7 +13,7 @@ class CustomerAddress extends TenantRecord
 
     protected function casts(): array
     {
-        return ['is_primary' => 'boolean'];
+        return ['is_primary' => 'boolean', 'latitude' => 'decimal:7', 'longitude' => 'decimal:7', 'geocoded_at' => 'datetime'];
     }
 
     public function customer(): BelongsTo
@@ -29,5 +29,16 @@ class CustomerAddress extends TenantRecord
     public function getMapsUrlAttribute(): string
     {
         return 'https://www.google.com/maps/search/?api=1&query='.rawurlencode($this->formatted);
+    }
+
+    public function getGeocodingWarningAttribute(): ?string
+    {
+        return match ($this->geocoding_status) {
+            'not_configured' => 'Coordenadas pendentes: a integração com o Google ainda não foi configurada.',
+            'configuration_error' => 'Coordenadas pendentes: verifique a configuração da chave e da Geocoding API do Google.',
+            'not_found' => 'O Google não identificou um local único para este endereço. Revise os dados e salve novamente.',
+            'unavailable' => 'Não foi possível consultar as coordenadas no Google. Salve o endereço novamente para tentar outra vez.',
+            default => null,
+        };
     }
 }

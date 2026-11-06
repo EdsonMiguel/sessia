@@ -128,9 +128,11 @@ it('requests receiver configuration before offering Pix sharing', function () {
 });
 
 it('keeps the Uber destination from the appointment snapshot after the customer address changes', function () {
+    $this->address->forceFill(['latitude' => '-23.5505199', 'longitude' => '-46.6333094'])->save();
     $appointment = operationAppointment();
     $originalAddress = $appointment->address_snapshot['formatted'];
     $this->address->update(['street' => 'Rua Nova & Outra', 'number' => '99']);
+    $this->address->forceFill(['latitude' => '-22.1000000', 'longitude' => '-45.2000000'])->save();
 
     $response = $this->get('/agenda/'.$appointment->id)->assertOk()->assertSee('Ir de Uber');
     $document = new DOMDocument;
@@ -139,6 +141,8 @@ it('keeps the Uber destination from the appointment snapshot after the customer 
     expect($link)->not->toBeNull();
     parse_str(parse_url($link->getAttribute('href'), PHP_URL_QUERY), $parameters);
     expect($parameters['dropoff']['formatted_address'])->toBe($originalAddress)
+        ->and($parameters['dropoff']['latitude'])->toBe('-23.5505199')
+        ->and($parameters['dropoff']['longitude'])->toBe('-46.6333094')
         ->and($parameters['pickup'])->toBe('my_location');
     expect($response->getContent())->not->toContain(rawurlencode($this->address->fresh()->formatted));
 });

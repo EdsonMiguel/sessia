@@ -219,6 +219,29 @@ it('offers a separate Uber destination for each customer address without leaking
         ->not->toContain($other['address']->formatted);
 });
 
+it('uses stored coordinates in Uber links only when the pair is complete', function ($latitude, $longitude, bool $hasCoordinates) {
+    $customer = Customer::factory()->create();
+    $address = $customer->addresses()->create(addressData());
+    $address->forceFill(['latitude' => $latitude, 'longitude' => $longitude])->save();
+    $response = $this->get('/clientes/'.$customer->id)->assertOk();
+    $document = new DOMDocument;
+    @$document->loadHTML($response->getContent());
+    $link = (new DOMXPath($document))->query('//a[starts-with(@href, "https://m.uber.com/looking?")]')->item(0);
+    parse_str(parse_url($link->getAttribute('href'), PHP_URL_QUERY), $parameters);
+    expect($parameters['dropoff']['formatted_address'])->toBe($address->formatted);
+    if ($hasCoordinates) {
+        expect($parameters['dropoff']['latitude'])->toBe($address->latitude)
+            ->and($parameters['dropoff']['longitude'])->toBe($address->longitude);
+    } else {
+        expect($parameters['dropoff'])->not->toHaveKeys(['latitude', 'longitude']);
+    }
+})->with([
+    'located' => ['-23.5505199', '-46.6333094', true],
+    'zero coordinates' => ['0', '0', true],
+    'without coordinates' => [null, null, false],
+    'incomplete coordinates' => ['-23.5505199', null, false],
+]);
+
 it('validates address fields and does not change the primary address on failure', function () {
     $customer = Customer::factory()->create();
     $address = $customer->addresses()->create(addressData());

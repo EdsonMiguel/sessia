@@ -11,11 +11,11 @@
             <p class="text-sm text-stone-600">Recebedor: {{ $data['receiver'] }} · {{ $data['city'] }}</p>
             <div>
                 <label for="pix-installment" class="field-label">Parcela para pagamento</label>
-                <select id="pix-installment" x-model="selected" x-on:change="generate()" class="field-input">
+                <x-form.select id="pix-installment" x-model="selected" x-on:change="generate()" class="field-input">
                     @foreach($data['installments'] as $installment)
                         <option value="{{ $installment['id'] }}">Parcela {{ $installment['number'] }} · {{ $installment['due'] }} · {{ $installment['formattedAmount'] }}</option>
                     @endforeach
-                </select>
+                </x-form.select>
                 <p class="mt-2 text-xs text-stone-500">O valor considera os pagamentos já registrados nesta parcela.</p>
             </div>
             <p class="text-sm text-stone-600">{{ $data['description'] }}</p>

@@ -1,11 +1,16 @@
-@props(['address'])
+@props(['address', 'latitude' => null, 'longitude' => null])
 
 @php
-    // Address-only hints may need confirmation in Uber; never invent coordinates.
+    $dropoff = ['formatted_address' => $address, 'nickname' => 'Local de atendimento'];
+    if (is_numeric($latitude) && is_numeric($longitude)
+        && $latitude >= -90 && $latitude <= 90 && $longitude >= -180 && $longitude <= 180) {
+        $dropoff['latitude'] = $latitude;
+        $dropoff['longitude'] = $longitude;
+    }
     $uberUrl = 'https://m.uber.com/looking?'.http_build_query([
         'action' => 'setPickup',
         'pickup' => 'my_location',
-        'dropoff' => ['formatted_address' => $address, 'nickname' => 'Local de atendimento'],
+        'dropoff' => $dropoff,
     ], '', '&', PHP_QUERY_RFC3986);
 @endphp
 

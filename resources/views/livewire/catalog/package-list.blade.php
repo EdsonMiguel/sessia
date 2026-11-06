@@ -6,7 +6,7 @@
     @if(session('status'))<p role="status" class="mt-5 rounded-xl bg-teal-50 p-4 text-sm text-teal-900">{{ session('status') }}</p>@endif
     <div class="my-6 grid gap-4 sm:grid-cols-[1fr_12rem]">
         <x-form.input name="search" label="Buscar pacote" wire:model.live.debounce.300ms="search" placeholder="Nome do pacote" />
-        <div><label for="status" class="field-label">Situação</label><select id="status" wire:model.live="status" class="field-input"><option value="active">Ativos</option><option value="inactive">Inativos</option><option value="all">Todos</option></select></div>
+        <div><label for="status" class="field-label">Situação</label><x-form.select id="status" wire:model.live="status" class="field-input"><option value="active">Ativos</option><option value="inactive">Inativos</option><option value="all">Todos</option></x-form.select></div>
     </div>
     <div class="grid gap-4 md:grid-cols-2">
         @forelse($packages as $package)

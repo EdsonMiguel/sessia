@@ -11,6 +11,33 @@ por parcela, descrição e compartilhamento por `wa.me`. A baixa continua manual
 
 ## Executar
 
+### Limpar os dados do negócio
+
+Em **Minha conta → Limpar dados cadastrados**, a proprietária pode
+apagar permanentemente os dados operacionais do negócio selecionado, incluindo
+históricos financeiros. A ação exige senha atual e a expressão `APAGAR TUDO`.
+Conta, vínculos e configurações permanecem; outros negócios não são afetados.
+A limpeza é transacional, sem desativar chaves estrangeiras, e mantém um registro
+de auditoria com responsável, data e contagens, sem conteúdo dos registros apagados.
+Não há recuperação pela aplicação. A instalação da funcionalidade não executa a limpeza.
+
+### Coordenadas dos endereços
+
+Defina `GOOGLE_MAPS_API_KEY` no `.env` com uma chave de servidor habilitada para a
+[Geocoding API do Google](https://developers.google.com/maps/documentation/geocoding/guides-v3/start).
+Depois execute `php artisan config:clear` e `php artisan migrate`.
+A chave é lida em `config/services.php` e não é enviada ao navegador.
+
+Ao salvar um endereço no cadastro da cliente ou no formulário de endereços, a
+aplicação consulta o Google e grava `latitude`, `longitude` e a data da consulta.
+São enviados apenas logradouro, número, bairro, cidade, estado, CEP e país;
+complementos, referências e dados pessoais da cliente não compõem a consulta.
+Sem chave, sem resultado único ou em caso de falha, o cadastro é preservado com
+coordenadas nulas e aviso. Salvar novamente tenta outra consulta. Endereços antigos
+não são consultados em lote; edite e salve para obter suas coordenadas.
+
+### Instalação
+
 1. `composer install`
 2. Configure o ambiente local a partir de `.env.example`, com MySQL e locale pt_BR.
 3. Gere APP_KEY somente se ainda estiver vazia.

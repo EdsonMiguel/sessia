@@ -14,6 +14,11 @@ ou integrações bancárias fictícias.
 - Clientes com telefone, e-mail opcional, observações, busca, filtros, paginação,
   detalhes, edição, desativação e reativação.
 - Vários endereços por cliente, principal, edição, remoção lógica e Google Maps.
+- Integração de servidor com a Geocoding API do Google, configurada por
+  `GOOGLE_MAPS_API_KEY`. Cada salvamento de endereço consulta latitude/longitude,
+  armazenadas como decimais, com status e data de sucesso. Falhas não bloqueiam
+  o cadastro e deixam um aviso; coordenadas antigas são limpas. Os testes usam
+  respostas simuladas, sem chamadas reais ou consumo da API.
 - Procedimentos com descrição, duração, preço padrão e situação ativa/inativa.
 - Preço habitual por cliente/procedimento, sem alterar o catálogo. A sugestão dá
   prioridade ao personalizado, inclusive zero, e depois ao padrão.
@@ -193,6 +198,12 @@ A rotina cria as competências e mensalidades previstas nos planos cadastrados;
 revise os acordos e os avisos de geração como parte da operação.
 
 ## Validação
+
+Verificação incremental em 06/11/2026: 179 testes passaram, 938 assertions e três
+testes de concorrência MySQL foram pulados na suíte SQLite. Inclui cadastro de
+pacotes, publicação, personalização com snapshots, geocodificação, falhas externas,
+reconsulta e isolamento antes de transmitir endereços. Pint e build do Vite passaram.
+As migrations de pacotes e coordenadas foram aplicadas no MySQL local do Laragon.
 
 A suíte cobre cadastro e isolamento; telas e formulários; snapshots; conflitos,
 bloqueios e fuso; pacotes mistos; reserva e consumo único; rollback integral;

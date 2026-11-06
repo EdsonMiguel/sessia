@@ -1,7 +1,7 @@
 <div>
     <div class="flex flex-wrap items-end justify-between gap-4"><div><p class="eyebrow">O que você faz de melhor</p><h1 class="page-title">Procedimentos</h1></div><a href="{{ route('procedures.create') }}" class="primary-button"><x-icon name="plus" /> <span>Novo procedimento</span></a></div>
     <x-flash />
-    <div class="my-7 grid gap-4 sm:grid-cols-[1fr_12rem]"><x-form.input name="search" label="Buscar procedimento" type="search" wire:model.live.debounce.300ms="search" maxlength="120" placeholder="Nome do procedimento" /><div><label for="status" class="field-label">Situação</label><select id="status" wire:model.live="status" class="field-input"><option value="active">Ativos</option><option value="inactive">Inativos</option><option value="all">Todos</option></select></div></div>
+    <div class="my-7 grid gap-4 sm:grid-cols-[1fr_12rem]"><x-form.input name="search" label="Buscar procedimento" type="search" wire:model.live.debounce.300ms="search" maxlength="120" placeholder="Nome do procedimento" /><div><label for="status" class="field-label">Situação</label><x-form.select id="status" wire:model.live="status" class="field-input"><option value="active">Ativos</option><option value="inactive">Inativos</option><option value="all">Todos</option></x-form.select></div></div>
     <div class="grid gap-4 md:grid-cols-2">
         @forelse($procedures as $procedure)
             <article wire:key="procedure-{{ $procedure->id }}" class="min-w-0 rounded-2xl border border-stone-200 bg-white p-4 sm:p-6">

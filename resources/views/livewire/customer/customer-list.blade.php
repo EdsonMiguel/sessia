@@ -6,7 +6,7 @@
     <x-flash />
     <div class="my-7 grid gap-4 sm:grid-cols-[1fr_12rem]">
         <x-form.input name="search" label="Buscar por nome, telefone ou e-mail" wire:model.live.debounce.300ms="search" type="search" maxlength="120" placeholder="Quem você procura?" />
-        <div><label for="status" class="field-label">Situação</label><select id="status" wire:model.live="status" class="field-input"><option value="active">Ativas</option><option value="inactive">Inativas</option><option value="all">Todas</option></select></div>
+        <div><label for="status" class="field-label">Situação</label><x-form.select id="status" wire:model.live="status" class="field-input"><option value="active">Ativas</option><option value="inactive">Inativas</option><option value="all">Todas</option></x-form.select></div>
     </div>
     <div class="space-y-3">
         @forelse($customers as $customer)

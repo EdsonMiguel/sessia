@@ -22,12 +22,12 @@
                 <x-form.input name="city" label="Cidade" wire:model="city" maxlength="120" autocomplete="address-level2" />
                 <div>
                     <label for="state" class="field-label">Estado</label>
-                    <select id="state" wire:model="state" class="field-input" autocomplete="address-level1">
+                    <x-form.select id="state" wire:model="state" class="field-input" autocomplete="address-level1">
                         <option value="">UF</option>
                         @foreach(\App\Livewire\Customer\AddressForm::STATES as $uf)
                             <option value="{{ $uf }}">{{ $uf }}</option>
                         @endforeach
-                    </select>
+                    </x-form.select>
                     @error('state')<p class="field-error" role="alert">{{ $message }}</p>@enderror
                 </div>
             </div>

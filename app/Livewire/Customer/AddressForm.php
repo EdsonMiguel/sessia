@@ -74,8 +74,8 @@ class AddressForm extends Component
         foreach (['complement', 'reference'] as $field) {
             $data[$field] = $data[$field] ?: null;
         }
-        $action->handle($this->customerId, $this->addressId, $data);
-        session()->flash('status', 'Endereço salvo.');
+        $address = $action->handle($this->customerId, $this->addressId, $data);
+        session()->flash('status', trim('Endereço salvo. '.($address->geocoding_warning ?? 'Coordenadas atualizadas.')));
         $this->redirectRoute('customers.show', ['customerId' => $this->customerId]);
     }
 

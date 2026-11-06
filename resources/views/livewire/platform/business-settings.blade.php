@@ -11,11 +11,11 @@
         </div>
         <div>
             <label for="timezone" class="field-label">Fuso horário</label>
-            <select id="timezone" wire:model="timezone" required class="field-input">
+            <x-form.select id="timezone" wire:model="timezone" required class="field-input">
                 @foreach(DateTimeZone::listIdentifiers() as $zone)
                     <option value="{{ $zone }}">{{ str_replace('_', ' ', $zone) }}</option>
                 @endforeach
-            </select>
+            </x-form.select>
             <p class="mt-2 text-sm text-stone-500">Usado para apresentar os horários do seu negócio.</p>
             @error('timezone') <p class="field-error" role="alert">{{ $message }}</p> @enderror
         </div>

@@ -78,7 +78,7 @@ class ScheduleAppointment
             $this->assertFree($from, $until, $appointmentId);
             $before = $appointment->exists ? $appointment->load('items')->toArray() : null;
             $appointment->fill([
-                'customer_id' => $customer->id, 'address_snapshot' => $address->only(['postal_code', 'street', 'number', 'complement', 'neighborhood', 'city', 'state', 'reference']) + ['formatted' => $address->formatted, 'address_id' => $address->id],
+                'customer_id' => $customer->id, 'address_snapshot' => $address->only(['postal_code', 'street', 'number', 'complement', 'neighborhood', 'city', 'state', 'reference', 'latitude', 'longitude']) + ['formatted' => $address->formatted, 'address_id' => $address->id],
                 'starts_at' => $start, 'ends_at' => $end, 'occupied_from' => $from, 'occupied_until' => $until,
                 'preparation_minutes' => $data['preparation_minutes'], 'travel_minutes' => $data['travel_minutes'],
                 'notes' => $data['notes'] ?? null,

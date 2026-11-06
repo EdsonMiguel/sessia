@@ -110,13 +110,13 @@ class CustomerForm extends Component
             $addressData['is_primary'] = true;
         }
 
-        DB::transaction(function () use ($customer, $data, $addressData, $saveAddress) {
+        $address = DB::transaction(function () use ($customer, $data, $addressData, $saveAddress) {
             $customer->fill($data)->save();
             if ($addressData !== null) {
-                $saveAddress->handle($customer->id, $this->addressId, $addressData);
+                return $saveAddress->handle($customer->id, $this->addressId, $addressData);
             }
         });
-        session()->flash('status', 'Cliente salva com sucesso.');
+        session()->flash('status', trim('Cliente salva com sucesso. '.($address?->geocoding_warning ?? '')));
         $this->redirectRoute('customers.show', ['customerId' => $customer->id]);
     }
 

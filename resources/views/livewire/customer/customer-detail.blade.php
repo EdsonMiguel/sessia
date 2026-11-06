@@ -19,7 +19,14 @@
                 <article wire:key="address-{{ $address->id }}" class="rounded-xl border border-stone-200 p-4">
                     @if($address->is_primary)<span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-medium text-teal-800">Principal</span>@endif
                     <p class="mt-2 break-words">{{ $address->formatted }}</p>
-                    <x-uber-link :address="$address->formatted" />
+                    @if($address->latitude !== null && $address->longitude !== null)
+                        <p class="mt-2 text-xs text-stone-500">Coordenadas do Google: latitude {{ $address->latitude }} · longitude {{ $address->longitude }}</p>
+                    @elseif($address->geocoding_warning)
+                        <p role="status" class="mt-2 text-sm text-amber-800">{{ $address->geocoding_warning }}</p>
+                    @else
+                        <p class="mt-2 text-xs text-stone-500">Coordenadas ainda não consultadas. Edite e salve o endereço para localizá-lo.</p>
+                    @endif
+                    <x-uber-link :address="$address->formatted" :latitude="$address->latitude" :longitude="$address->longitude" />
                     @if($address->reference)<p class="mt-2 text-sm text-stone-500">Referência: {{ $address->reference }}</p>@endif
                     <div class="mt-2 flex flex-wrap gap-5 text-sm font-medium text-teal-800"><a href="{{ $address->maps_url }}" target="_blank" rel="noopener noreferrer" class="py-3"><x-icon name="pin" /> <span>Abrir no Google Maps ↗</span></a><a href="{{ route('customers.addresses.edit', [$customer->id, $address->id]) }}" class="py-3"><x-icon name="edit" /> <span>Editar</span></a><button wire:click="removeAddress({{ $address->id }})" data-confirm="Remover este endereço do cadastro?" wire:loading.attr="disabled" class="py-3 text-stone-600"><x-icon name="trash" /> <span>Remover</span></button></div>
                 </article>
@@ -40,7 +47,7 @@
         </div>
         @if($procedures->isNotEmpty())
             <form wire:submit="savePrice" class="mt-6 grid items-end gap-4 sm:grid-cols-[1fr_10rem_auto]">
-                <div><label for="procedureId" class="field-label">Procedimento</label><select id="procedureId" wire:model="procedureId" required class="field-input"><option value="">Selecione</option>@foreach($procedures as $procedure)<option value="{{ $procedure->id }}">{{ $procedure->name }}{{ $procedure->is_active ? '' : ' (inativo)' }}</option>@endforeach</select>@error('procedureId')<p class="field-error" role="alert">{{ $message }}</p>@enderror</div>
+                <div><label for="procedureId" class="field-label">Procedimento</label><x-form.select id="procedureId" wire:model="procedureId" required class="field-input"><option value="">Selecione</option>@foreach($procedures as $procedure)<option value="{{ $procedure->id }}">{{ $procedure->name }}{{ $procedure->is_active ? '' : ' (inativo)' }}</option>@endforeach</x-form.select>@error('procedureId')<p class="field-error" role="alert">{{ $message }}</p>@enderror</div>
                 <x-form.input name="price" label="Preço (R$)" wire:model="price" inputmode="decimal" placeholder="120,00" required />
                 <button class="primary-button" wire:loading.attr="disabled"><x-icon name="save" /> <span>Salvar preço</span></button>
             </form>

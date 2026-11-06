@@ -12,10 +12,10 @@
                 <div wire:key="package-item-{{ $index }}" class="space-y-4 rounded-xl bg-stone-50 p-4">
                     <div>
                         <label for="procedure-{{ $index }}" class="field-label">Procedimento</label>
-                        <select id="procedure-{{ $index }}" wire:model="items.{{ $index }}.procedure_id" required class="field-input">
+                        <x-form.select id="procedure-{{ $index }}" wire:model="items.{{ $index }}.procedure_id" required class="field-input">
                             <option value="">Selecione</option>
                             @foreach($procedures as $procedure)<option value="{{ $procedure->id }}" @disabled(!$procedure->is_active)>{{ $procedure->name }}{{ $procedure->is_active ? '' : ' (inativo — substitua este item)' }}</option>@endforeach
-                        </select>
+                        </x-form.select>
                     </div>
                     <x-form.input name="quantity-{{ $index }}" label="Quantidade de sessões" type="number" min="1" max="65535" wire:model="items.{{ $index }}.quantity" required />
                     <button type="button" wire:click="removeItem({{ $index }})" class="inline-flex min-h-11 items-center gap-2 text-sm text-stone-600"><x-icon name="trash" /> Remover item</button>

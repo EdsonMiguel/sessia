@@ -83,6 +83,14 @@ it('renders the remaining modules with real records', function () {
     foreach (['/inicio', '/agenda', '/agenda/novo', '/agenda/'.$appointment->id, '/agenda/'.$appointment->id.'/editar', '/contratacoes', '/contratacoes/nova', '/contratacoes/'.$contract->id, '/financeiro', '/financeiro/'.$charge->id] as $url) {
         $this->get($url)->assertOk();
     }
+
+    $this->get(route('appointments.show', $appointment->id))
+        ->assertSeeHtml('id="confirmation-dialog"')
+        ->assertSeeHtml('wire:click="complete" data-confirm=')
+        ->assertDontSeeHtml('wire:confirm=');
+    $this->get(route('billing.show', $charge->id))
+        ->assertSeeHtml('wire:submit="receive" data-confirm=')
+        ->assertDontSeeHtml('wire:confirm=');
 });
 
 it('prepares Pix only for unpaid installment balances using the current business receiver', function () {
@@ -466,6 +474,65 @@ it('persists an appointment and its reserved session through the form', function
     expect(Appointment::count())->toBe(1)->and(SessionBalance::for($item)['reserved'])->toBe(1);
 });
 
+it('prefills a package appointment with the customer, primary address and available procedures', function () {
+    $secondProcedure = Procedure::factory()->create();
+    $exhaustedProcedure = Procedure::factory()->create();
+    $contract = operationContract(['starts_on' => '2026-12-02', 'items' => [
+        ['procedure_id' => $this->procedure->id, 'quantity' => 2],
+        ['procedure_id' => $secondProcedure->id, 'quantity' => 1],
+        ['procedure_id' => $exhaustedProcedure->id, 'quantity' => 1],
+    ]]);
+    [$first, $second, $exhausted] = $contract->items()->orderBy('id')->get()->all();
+    operationAppointment($exhausted, '2026-12-02T09:00', [
+        'items' => [['procedure_id' => $exhausted->procedure_id, 'contract_item_id' => $exhausted->id]],
+    ]);
+    $query = ['contract' => $contract->id];
+
+    $this->get(route('contracts.show', $contract))->assertOk()
+        ->assertSeeHtml('href="'.e(route('appointments.create', $query)).'"');
+    $this->get(route('appointments.create', $query))->assertOk();
+    Livewire::withQueryParams($query)->test(AppointmentForm::class)
+        ->assertSet('customer_id', (string) $this->customer->id)
+        ->assertSet('address_id', (string) $this->address->id)
+        ->assertSet('starts_at', '2026-12-02T04:00')
+        ->assertSet('items', [
+            ['procedure_id' => (string) $first->procedure_id, 'source' => 'contract:'.$first->id],
+            ['procedure_id' => (string) $second->procedure_id, 'source' => 'contract:'.$second->id],
+        ])->call('save')->assertHasNoErrors();
+
+    expect(SessionBalance::for($first)['reserved'])->toBe(1)
+        ->and(SessionBalance::for($second)['reserved'])->toBe(1)
+        ->and(SessionBalance::for($exhausted)['reserved'])->toBe(1);
+});
+
+it('prefills a plan appointment using its selected period and habitual address', function () {
+    $address = $this->customer->addresses()->create($this->address->only(['postal_code', 'street', 'number', 'neighborhood', 'city', 'state']));
+    $contract = operationContract(['type' => 'plan', 'address_id' => $address->id]);
+    $period = app(GeneratePlanPeriod::class)->handle($contract->id, '2027-01');
+    $item = $period->items()->sole();
+    $query = ['contract' => $contract->id, 'period' => $period->id];
+
+    $this->get(route('contracts.show', $contract))->assertOk()
+        ->assertSeeHtml('href="'.e(route('appointments.create', $query)).'"');
+    $this->get(route('appointments.create', $query))->assertOk();
+    Livewire::withQueryParams($query)->test(AppointmentForm::class)
+        ->assertSet('customer_id', (string) $this->customer->id)
+        ->assertSet('address_id', (string) $address->id)
+        ->assertSet('starts_at', '2027-01-01T09:00')
+        ->assertSet('items', [['procedure_id' => (string) $this->procedure->id, 'source' => 'period:'.$item->id]])
+        ->call('save')->assertHasNoErrors();
+
+    expect(Appointment::sole()->items()->sole()->plan_period_item_id)->toBe($item->id);
+    $otherContract = operationContract(['type' => 'plan']);
+    $this->get(route('appointments.create', ['contract' => $otherContract->id, 'period' => $period->id]))->assertNotFound();
+});
+
+it('rejects appointment prefill from another business or a malformed contract reference', function () {
+    $foreign = foreignOperations();
+    $this->get(route('appointments.create', ['contract' => $foreign['contract']->id]))->assertNotFound();
+    $this->get(route('appointments.create', ['contract' => [$foreign['contract']->id]]))->assertNotFound();
+});
+
 it('does not allow reallocating a payment to another customer', function () {
     $a = app(IssueReceivable::class)->handle(operationContract(['type' => 'single'])->id, ['2026-12-10'])->installments()->sole();
     $other = Customer::factory()->create();
@@ -548,6 +615,38 @@ it('renders day week and month agenda views and validates cleared duration field
     Livewire::test(AppointmentForm::class)->set('customer_id', (string) $this->customer->id)
         ->set('address_id', (string) $this->address->id)->set('items.0.procedure_id', (string) $this->procedure->id)
         ->set('preparation_minutes', '')->call('save')->assertHasErrors('preparation_minutes');
+});
+
+it('shows each appointment status with a distinct agenda card background', function (string $status, string $background) {
+    $appointment = operationAppointment();
+    $appointment->update(['status' => $status]);
+
+    $this->get('/agenda')->assertOk()
+        ->assertSee($background)
+        ->assertSee(Appointment::STATUSES[$status]);
+})->with([
+    ['scheduled', 'bg-sky-100'],
+    ['confirmed', 'bg-violet-100'],
+    ['completed', 'bg-emerald-100'],
+    ['cancelled', 'bg-rose-100'],
+    ['no_show', 'bg-amber-100'],
+]);
+
+it('places weekly events at local hours, clips overnight visits and separates overlapping cards', function () {
+    $overnight = operationAppointment(at: '2026-12-01T23:30');
+    $cancelled = operationAppointment(at: '2026-12-02T09:15');
+    app(ScheduleAppointment::class)->changeStatus($cancelled->id, 'cancelled', null);
+    app(ScheduleAppointment::class)->block('2026-12-02T09:00', '2026-12-02T10:00', 'Bloqueio de teste');
+
+    $this->get('/agenda')->assertOk()
+        ->assertSeeInOrder(['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo', '00:00', '23:00'])
+        ->assertSeeHtml('week-appointment-2026-12-01-'.$overnight->id)
+        ->assertSeeHtml('week-appointment-2026-12-02-'.$overnight->id)
+        ->assertSeeHtml('--event-start: 1410; --event-end: 1440; --event-lane: 0; --event-lanes: 1')
+        ->assertSeeHtml('--event-start: 0; --event-end: 30; --event-lane: 0; --event-lanes: 1')
+        ->assertSeeHtml('--event-start: 540; --event-end: 600; --event-lane: 0; --event-lanes: 2')
+        ->assertSeeHtml('--event-start: 555; --event-end: 615; --event-lane: 1; --event-lanes: 2')
+        ->assertSee('Bloqueio de teste');
 });
 
 it('does not introduce an automatic expiration policy for packages', function () {

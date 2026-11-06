@@ -39,6 +39,34 @@ it('redirects visitors and renders public authentication screens', function () {
     $this->get('/cadastro')->assertOk()->assertSee('Seu negócio começa aqui');
 });
 
+it('exposes the Sessia install manifest on public and signed in pages', function () {
+    $manifestUrl = url('manifest.webmanifest');
+    $manifestLink = '<link rel="manifest" href="'.$manifestUrl.'">';
+
+    $this->get('/entrar')->assertOk()->assertSeeHtml($manifestLink);
+    $this->actingAs(businessOwner())->get('/inicio')->assertOk()->assertSeeHtml($manifestLink);
+
+    $manifest = json_decode(file_get_contents(public_path('manifest.webmanifest')), true, flags: JSON_THROW_ON_ERROR);
+    expect($manifest['display'])->toBe('standalone')->and($manifest['start_url'])->toBe('./');
+    expect(array_column($manifest['icons'], 'sizes'))->toBe(['192x192', '512x512']);
+
+    foreach ($manifest['icons'] as $icon) {
+        [$width, $height, $type] = getimagesize(public_path($icon['src']));
+        expect($width.'x'.$height)->toBe($icon['sizes'])->and($type)->toBe(IMAGETYPE_PNG);
+    }
+});
+
+it('uses the forwarded scheme only from a loopback proxy', function (string $address, string $scheme) {
+    $this->withServerVariables(['REMOTE_ADDR' => $address])
+        ->withHeader('X-Forwarded-Proto', 'https')
+        ->get('http://sessia.example.test/')
+        ->assertRedirect($scheme.'://sessia.example.test/entrar');
+})->with([
+    ['127.0.0.1', 'https'],
+    ['::1', 'https'],
+    ['203.0.113.10', 'http'],
+]);
+
 it('registers an owner and a business together and hashes the password', function () {
     Livewire::test(Register::class)
         ->set('name', 'Profissional de Teste')

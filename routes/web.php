@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\PublicCatalogController;
 use App\Http\Middleware\ResolveTenant;
 use App\Livewire\Auth\Login;
@@ -56,6 +57,8 @@ Route::middleware(['auth', ResolveTenant::class])->group(function () {
     Route::get('/financeiro', FinanceList::class)->name('billing.index');
     Route::get('/financeiro/{receivableId}', ReceivableDetail::class)->whereNumber('receivableId')->name('billing.show');
     Route::get('/configuracoes', BusinessSettings::class)->name('business.settings');
+    Route::get('/minha-conta', [AccountController::class, 'show'])->name('account.show');
+    Route::put('/minha-conta/senha', [AccountController::class, 'updatePassword'])->middleware('throttle:5,1,account-password:')->name('account.password.update');
     Route::get('/clientes', CustomerList::class)->name('customers.index');
     Route::get('/clientes/nova', CustomerForm::class)->name('customers.create');
     Route::get('/clientes/{customerId}/editar', CustomerForm::class)->whereNumber('customerId')->name('customers.edit');

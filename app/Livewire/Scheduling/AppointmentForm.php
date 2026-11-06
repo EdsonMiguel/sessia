@@ -7,6 +7,8 @@ use App\Models\ContractItem;
 use App\Models\Customer;
 use App\Models\PlanPeriodItem;
 use App\Models\Procedure;
+use App\Models\ServiceContract;
+use App\Modules\Contract\SessionBalance;
 use App\Modules\Platform\CurrentTenant;
 use App\Modules\Scheduling\ScheduleAppointment;
 use Illuminate\Support\Facades\Gate;
@@ -52,6 +54,53 @@ class AppointmentForm extends Component
             $this->notes = $a->notes ?? '';
             $this->items = $a->items->map(fn ($row) => ['procedure_id' => (string) $row->procedure_id,
                 'source' => $row->plan_period_item_id ? 'period:'.$row->plan_period_item_id : ($row->contract_item_id ? 'contract:'.$row->contract_item_id : '')])->all();
+
+            return;
+        }
+
+        if (request()->query('contract') !== null) {
+            $contractId = filter_var(request()->query('contract'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            abort_if($contractId === false, 404);
+            $this->prefillFromContract($contractId);
+        }
+    }
+
+    private function prefillFromContract(int $contractId): void
+    {
+        $contract = ServiceContract::where('status', 'active')->findOrFail($contractId);
+        Gate::authorize('view', $contract);
+
+        $period = null;
+        if ($contract->type === 'plan') {
+            $periodId = filter_var(request()->query('period'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            abort_if($periodId === false, 404);
+            $period = $contract->periods()->findOrFail($periodId);
+        }
+
+        $this->customer_id = (string) $contract->customer_id;
+        $customer = $contract->customer;
+        $address = $contract->address_id ? $customer->addresses()->find($contract->address_id) : null;
+        $this->address_id = (string) ($address?->id ?? $customer->addresses()->where('is_primary', true)->value('id'));
+
+        $items = $period ? $period->items()->with('contractItem') : $contract->items();
+        $this->items = $items->withCount(['activeExecutions', 'reservations'])->orderBy('id')->get()
+            ->filter(fn ($item) => SessionBalance::for($item)['available'] > 0)
+            ->map(fn ($item) => [
+                'procedure_id' => (string) ($period ? $item->contractItem->procedure_id : $item->procedure_id),
+                'source' => ($period ? 'period:' : 'contract:').$item->id,
+            ])->values()->all();
+
+        if ($this->items === []) {
+            $this->addError('items', 'Não há sessões disponíveis para agendar nesta contratação.');
+        }
+
+        [$date, $time] = explode('T', $this->starts_at);
+        $suggestedDate = max($date, $contract->starts_on->toDateString(), $period?->month->toDateString() ?? $date);
+        if (($period && $suggestedDate > $period->month->endOfMonth()->toDateString())
+            || ($contract->ends_on && $suggestedDate > $contract->ends_on->toDateString())) {
+            $this->starts_at = '';
+        } elseif ($suggestedDate !== $date) {
+            $this->starts_at = $suggestedDate.'T'.substr($contract->preferred_time ?? $time, 0, 5);
         }
     }
 

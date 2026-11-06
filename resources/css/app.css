@@ -18,6 +18,34 @@
     .nav-active { @apply bg-teal-50 text-teal-900; }
     .eyebrow { @apply text-xs font-semibold uppercase tracking-widest text-teal-700; }
     .page-title { @apply mt-3 text-2xl font-semibold tracking-tight sm:text-4xl; }
+
+    .agenda-week {
+        --agenda-hour-height: 4.5rem;
+        min-width: 55rem;
+    }
+
+    .agenda-week-grid {
+        display: grid;
+        grid-template-columns: 3.75rem repeat(7, minmax(0, 1fr));
+    }
+
+    .agenda-week-hour { height: var(--agenda-hour-height); }
+
+    .agenda-week-day {
+        height: calc(24 * var(--agenda-hour-height));
+        background: repeating-linear-gradient(to bottom, transparent 0 calc(var(--agenda-hour-height) - 1px), var(--color-stone-200) calc(var(--agenda-hour-height) - 1px) var(--agenda-hour-height));
+    }
+
+    .agenda-week-event {
+        position: absolute;
+        top: calc(var(--event-start) * 100% / 1440);
+        height: calc((var(--event-end) - var(--event-start)) * 100% / 1440);
+        left: calc(var(--event-lane) * 100% / var(--event-lanes) + 2px);
+        width: calc(100% / var(--event-lanes) - 4px);
+        overflow: hidden;
+    }
+
+    .agenda-week-event:focus-visible { z-index: 1; }
 }
 
 @layer base {

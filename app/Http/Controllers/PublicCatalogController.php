@@ -26,6 +26,7 @@ class PublicCatalogController extends Controller
     public function show(string $slug)
     {
         $business = $this->business($slug);
+        $ownerName = $business->users()->wherePivot('role', 'owner')->orderBy('users.id')->value('users.name');
         $procedures = $this->procedures($business)->orderBy('name')->orderBy('id')->paginate(12);
         $packages = $this->packages($business)->with([
             'items' => fn ($q) => $q->withoutGlobalScope('tenant')->where('tenant_id', $business->id)
@@ -35,7 +36,7 @@ class PublicCatalogController extends Controller
         $procedures->appends(request()->only('packages_page'));
         $packages->appends(request()->only('page'));
 
-        return view('catalog.show', compact('business', 'procedures', 'packages'));
+        return view('catalog.show', compact('business', 'ownerName', 'procedures', 'packages'));
     }
 
     private function packages(Tenant $business)

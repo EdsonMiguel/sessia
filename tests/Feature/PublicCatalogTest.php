@@ -31,6 +31,7 @@ beforeEach(function () {
 
 it('shows only opted in active services of the slug tenant without login or private data', function () {
     $this->get('/catalogo/espaco-publico?tenant_id='.$this->otherTenant->id)->assertOk()
+        ->assertSeeInOrder([$this->tenant->name, 'By '.$this->owner->name])
         ->assertSee('Serviço Público')->assertSee('Descrição pública')->assertSee('R$ 120,00')
         ->assertDontSee('Serviço Privado')->assertDontSee('Serviço Inativo')->assertDontSee('Outro Serviço')
         ->assertDontSee('segredo-pix@example.test')->assertDontSee($this->owner->email);
@@ -42,8 +43,16 @@ it('shows only opted in active services of the slug tenant without login or priv
 it('uses the public slug even when a visitor is authenticated in a different tenant', function () {
     $this->actingAs($this->otherOwner);
     session(['current_tenant_id' => $this->otherTenant->id]);
-    $this->get('/catalogo/espaco-publico')->assertOk()->assertSee('Serviço Público')->assertDontSee('Outro Serviço');
+    $this->get('/catalogo/espaco-publico')->assertOk()->assertSee('Serviço Público')->assertDontSee('Outro Serviço')
+        ->assertSee('By '.$this->owner->name)->assertDontSee('By '.$this->otherOwner->name);
     expect(session('current_tenant_id'))->toBe($this->otherTenant->id);
+});
+
+it('omits the catalog byline when the business has no owner', function () {
+    $this->tenant->users()->updateExistingPivot($this->owner->id, ['role' => 'member']);
+
+    $this->get('/catalogo/espaco-publico')->assertOk()
+        ->assertSee($this->tenant->name)->assertDontSee('By '.$this->owner->name);
 });
 
 it('opens WhatsApp with the selected public service and the business phone', function () {

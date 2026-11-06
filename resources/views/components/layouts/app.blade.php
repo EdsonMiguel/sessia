@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sessia · {{ $currentBusiness->name }}</title>
+    <x-pwa-meta />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
@@ -32,6 +33,7 @@
                 <a href="{{ route('contracts.index') }}" @class(['nav-link', 'nav-active' => request()->routeIs('contracts.*')]) @if(request()->routeIs('contracts.*')) aria-current="page" @endif><x-icon name="document" /> <span>Contratações</span></a>
                 <a href="{{ route('billing.index') }}" @class(['nav-link', 'nav-active' => request()->routeIs('billing.*')]) @if(request()->routeIs('billing.*')) aria-current="page" @endif><x-icon name="wallet" /> <span>Financeiro</span></a>
                 <a href="{{ route('business.settings') }}" @class(['nav-link', 'nav-active' => request()->routeIs('business.settings')]) @if(request()->routeIs('business.settings')) aria-current="page" @endif><x-icon name="settings" /> <span>Configurações do negócio</span></a>
+                <a href="{{ route('account.show') }}" @class(['nav-link', 'nav-active' => request()->routeIs('account.show')]) @if(request()->routeIs('account.show')) aria-current="page" @endif><x-icon name="lock" /> <span>Minha conta</span></a>
             </nav>
             <form action="{{ route('logout') }}" method="POST" class="mt-6 border-t border-stone-100 pt-4">
                 @csrf
@@ -42,6 +44,7 @@
         </aside>
         <main class="app-content mx-auto min-w-0 w-full max-w-6xl px-4 py-6 sm:p-8 lg:p-12" id="main-content">{{ $slot }}</main>
     </div>
+    <x-confirmation-dialog />
     @livewireScriptConfig
 </body>
 </html>

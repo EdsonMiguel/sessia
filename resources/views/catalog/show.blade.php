@@ -12,7 +12,12 @@
         <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
             <a href="{{ route('catalog.show', $business->slug) }}" class="flex min-w-0 items-center gap-3 font-semibold tracking-tight text-teal-950">
                 <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-teal-900 text-white"><x-icon name="sparkles" /></span>
-                <span class="break-words">{{ $business->name }}</span>
+                <span class="min-w-0 break-words">
+                    <span class="block">{{ $business->name }}</span>
+                    @if($ownerName)
+                        <span class="mt-1 block text-xs font-medium text-stone-600">By {{ $ownerName }}</span>
+                    @endif
+                </span>
             </a>
             <a href="#servicos" class="shrink-0 rounded-full border border-stone-300 px-4 py-3 text-sm font-medium hover:border-teal-800">Ver serviços</a>
         </div>

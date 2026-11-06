@@ -9,7 +9,7 @@
         <h2 class="text-lg font-semibold">Dados da cliente</h2>
         <dl class="mt-4 grid gap-4 sm:grid-cols-2"><div><dt class="text-sm text-stone-500">Telefone</dt><dd class="mt-1">{{ $customer->phone }}</dd></div><div class="min-w-0"><dt class="text-sm text-stone-500">E-mail</dt><dd class="mt-1 break-words">{{ $customer->email ?: 'Não informado' }}</dd></div></dl>
         @if($customer->notes)<h3 class="mt-5 text-sm text-stone-500">Observações</h3><p class="mt-1 whitespace-pre-line break-words">{{ $customer->notes }}</p>@endif
-        <button wire:click="toggleActive" wire:confirm="{{ $customer->is_active ? 'Desativar esta cliente? Seus dados serão preservados.' : 'Reativar esta cliente?' }}" wire:loading.attr="disabled" class="mt-6 min-h-11 text-sm font-medium text-teal-800 underline underline-offset-4">{{ $customer->is_active ? 'Desativar cliente' : 'Reativar cliente' }}</button>
+        <button wire:click="toggleActive" data-confirm="{{ $customer->is_active ? 'Desativar esta cliente? Seus dados serão preservados.' : 'Reativar esta cliente?' }}" wire:loading.attr="disabled" class="mt-6 min-h-11 text-sm font-medium text-teal-800 underline underline-offset-4">{{ $customer->is_active ? 'Desativar cliente' : 'Reativar cliente' }}</button>
     </section>
     @include('livewire.customer.operational-history')
     <section class="mt-6 rounded-2xl border border-stone-200 bg-white p-4 sm:p-6">
@@ -21,7 +21,7 @@
                     <p class="mt-2 break-words">{{ $address->formatted }}</p>
                     <x-uber-link :address="$address->formatted" />
                     @if($address->reference)<p class="mt-2 text-sm text-stone-500">Referência: {{ $address->reference }}</p>@endif
-                    <div class="mt-2 flex flex-wrap gap-5 text-sm font-medium text-teal-800"><a href="{{ $address->maps_url }}" target="_blank" rel="noopener noreferrer" class="py-3"><x-icon name="pin" /> <span>Abrir no Google Maps ↗</span></a><a href="{{ route('customers.addresses.edit', [$customer->id, $address->id]) }}" class="py-3"><x-icon name="edit" /> <span>Editar</span></a><button wire:click="removeAddress({{ $address->id }})" wire:confirm="Remover este endereço do cadastro?" wire:loading.attr="disabled" class="py-3 text-stone-600"><x-icon name="trash" /> <span>Remover</span></button></div>
+                    <div class="mt-2 flex flex-wrap gap-5 text-sm font-medium text-teal-800"><a href="{{ $address->maps_url }}" target="_blank" rel="noopener noreferrer" class="py-3"><x-icon name="pin" /> <span>Abrir no Google Maps ↗</span></a><a href="{{ route('customers.addresses.edit', [$customer->id, $address->id]) }}" class="py-3"><x-icon name="edit" /> <span>Editar</span></a><button wire:click="removeAddress({{ $address->id }})" data-confirm="Remover este endereço do cadastro?" wire:loading.attr="disabled" class="py-3 text-stone-600"><x-icon name="trash" /> <span>Remover</span></button></div>
                 </article>
             @empty
                 <p class="py-3 text-sm text-stone-500">Nenhum endereço cadastrado. Adicione o local onde a cliente será atendida.</p>
@@ -33,7 +33,7 @@
         <p class="mt-2 text-sm leading-relaxed text-stone-500">Defina o preço habitual de um procedimento para esta cliente. Ele terá prioridade sobre o preço padrão na sugestão de novas contratações.</p>
         <div class="mt-5 space-y-3">
             @forelse($customer->procedurePrices as $customPrice)
-                <div wire:key="price-{{ $customPrice->id }}" class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-stone-50 p-4"><div><h3 class="font-medium">{{ $customPrice->procedure->name }} @if(!$customPrice->procedure->is_active)<span class="text-xs text-stone-500">(inativo)</span>@endif</h3><p class="mt-1 text-sm">{{ \App\Modules\Catalog\DecimalAmount::format($customPrice->price) }} <span class="text-stone-500">· Padrão: {{ \App\Modules\Catalog\DecimalAmount::format($customPrice->procedure->default_price) }}</span></p></div><button wire:click="removePrice({{ $customPrice->id }})" wire:confirm="Remover o preço personalizado e voltar a sugerir o preço padrão?" wire:loading.attr="disabled" class="min-h-11 text-sm text-stone-600 underline"><x-icon name="trash" /> <span>Remover</span></button></div>
+                <div wire:key="price-{{ $customPrice->id }}" class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-stone-50 p-4"><div><h3 class="font-medium">{{ $customPrice->procedure->name }} @if(!$customPrice->procedure->is_active)<span class="text-xs text-stone-500">(inativo)</span>@endif</h3><p class="mt-1 text-sm">{{ \App\Modules\Catalog\DecimalAmount::format($customPrice->price) }} <span class="text-stone-500">· Padrão: {{ \App\Modules\Catalog\DecimalAmount::format($customPrice->procedure->default_price) }}</span></p></div><button wire:click="removePrice({{ $customPrice->id }})" data-confirm="Remover o preço personalizado e voltar a sugerir o preço padrão?" wire:loading.attr="disabled" class="min-h-11 text-sm text-stone-600 underline"><x-icon name="trash" /> <span>Remover</span></button></div>
             @empty
                 <p class="text-sm text-stone-500">Esta cliente utiliza os preços padrão do catálogo.</p>
             @endforelse
